@@ -3,3 +3,4 @@ GRACEDADM*
 *.gif
 *.mp4
 *.nc
+*/__pycache__
