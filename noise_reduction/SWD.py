@@ -63,8 +63,10 @@ def makeSWD(year, julian_day, month, day, hour, datetime_str, latitude_north, la
     #---Create strings for the save file
     date_str = str(datetime_str).replace('-', '_').replace(' ', '_')
 
-    #---Create and save the BTD
+    #---Create the BTD
     BTD = Tb_15 - Tb_13
+
+    #---Save the BTD
     save_dir = "swd_files"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)  
