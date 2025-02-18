@@ -1,0 +1,13 @@
+name: soil_moisture
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cartopy=0.24.0
+  - cfgrib=0.9.15.0
+  - matplotlib=3.10.0
+  - netcdf4=1.6.5
+  - numpy=2.2.2
+  - pandas=2.2.3
+  - xarray=2024.7.0
+prefix: /Applications/anaconda3/envs/soil_moisture
