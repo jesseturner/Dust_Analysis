@@ -17,9 +17,10 @@ year = 2025
 month = 1
 
 for hour in range(0, 24):
-    utc = f"{hour:02d}Z"
+    hour_str = str(hour).zfill(2)+"Z"
+    month_str = str(month).zfill(2)
 
-    clim_path = f"monthly_average/2025_Jan_{utc}.nc"
+    clim_path = f"monthly_average/2025_{month_str}_{hour_str}.nc"
     
     if os.path.exists(clim_path):
         print("Climatology exists, skipping build.")
@@ -32,6 +33,6 @@ for hour in range(0, 24):
             datetime_str = str(year)+'-'+str(month).zfill(2)+'-'+str(day).zfill(2)+' '+str(hour).zfill(2)+'Z'
             SWD.makeSWD(year, julian_day, month, day, hour, datetime_str, latitude_north, latitude_south, longitude_west, longitude_east)
         
-        median_data = SWD_average.make_average(utc, latitude_north, latitude_south, longitude_west, longitude_east)
+        median_data = SWD_average.make_average(hour_str, latitude_north, latitude_south, longitude_west, longitude_east)
     
-    adjusted_data = SWD_adjusted.make_adjusted(utc, latitude_north, latitude_south, longitude_west, longitude_east)
+    adjusted_data = SWD_adjusted.make_adjusted(hour_str, latitude_north, latitude_south, longitude_west, longitude_east)
