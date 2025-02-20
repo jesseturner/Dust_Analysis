@@ -31,8 +31,18 @@ for hour in range(0, 24):
         for day in range(1, 32):
             julian_day = datetime.datetime(year, month, day).strftime('%j')
             datetime_str = str(year)+'-'+str(month).zfill(2)+'-'+str(day).zfill(2)+' '+str(hour).zfill(2)+'Z'
-            SWD.makeSWD(year, julian_day, month, day, hour, datetime_str, latitude_north, latitude_south, longitude_west, longitude_east)
+
+            #--- Checking if file has already been made
+            date_str = str(datetime_str).replace('-', '_').replace(' ', '_')
+            file_path = f"swd_files/satellite_btd_{date_str}.nc"
+            if os.path.exists(file_path):
+                print(f"{date_str} already exists.")
+            else: 
+                #--- Building the swd_file
+                SWD.makeSWD(year, julian_day, month, day, hour, datetime_str, latitude_north, latitude_south, longitude_west, longitude_east)
         
+        #--- Building the monthly_average
         median_data = SWD_average.make_average(hour_str, latitude_north, latitude_south, longitude_west, longitude_east)
     
+    #--- Building the swd_adjusted
     adjusted_data = SWD_adjusted.make_adjusted(hour_str, latitude_north, latitude_south, longitude_west, longitude_east)
