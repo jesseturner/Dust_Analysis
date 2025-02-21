@@ -14,12 +14,12 @@ longitude_west = -128
 longitude_east = -100
 
 #--- Select file
-directory = "swd_adjusted"  #--- "swd_files" or "monthly_average" or "swd_adjusted"
+directory = "monthly_average"  #--- "swd_files" or "monthly_average" or "swd_adjusted"
 year = "2025"
 month_num = "01"
 month_name = "Jan"
 day = "30"
-hour = "02Z"
+hour = "08Z"
 days_in_month = "31"
 
 #--- Opening SWD from file
