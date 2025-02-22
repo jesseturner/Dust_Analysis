@@ -4,3 +4,4 @@ GRACEDADM*
 *.mp4
 *.nc
 */__pycache__
+*nohup.out
