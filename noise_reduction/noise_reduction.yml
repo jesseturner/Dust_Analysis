@@ -11,6 +11,7 @@ dependencies:
   - pandas=2.2.3
   - xarray=2024.7.0
   - requests=2.32.3
+  - imageio=2.37.0
   - pip:
       - s3fs==2025.2.0
 prefix: /Applications/anaconda3/envs/noise_reduction
