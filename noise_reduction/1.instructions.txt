@@ -1,3 +1,5 @@
 **SWD_run.py:** Create split-window difference files, monthly average, and adjusted product
 
-**SWD_plot.py:** Create PNG figures of the resulting data files
+**SWD_plot_run.py:** Create PNG figures of the resulting data files
+
+**animate.py:** Create gif animations of the PNG figures
