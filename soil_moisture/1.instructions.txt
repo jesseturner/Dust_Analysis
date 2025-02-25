@@ -1,4 +1,8 @@
 
-Use WLDAS_data_download.sh to download the soil moisture data
-* Requires the "Download GES DISC data" (from notes) setup with wget installed and Earthdata authorization.
-* This is all setup on gennai, but is repeatable on other machines
+Set up to run on smiller2 machine
+* uses custom ~/.netrc, ~/.urs_cookies, and ~/.dodsrc
+
+Run analysis via dust_vs_wldas.py script
+* Uses WLDAS_data_download.sh to download the soil moisture data
+    * Requires the "Download GES DISC data" (from notes) setup with wget installed and Earthdata authorization.
+    * This is all setup on gennai, but is repeatable on other machines
