@@ -19,8 +19,11 @@ dust_df.columns = [
 ]
 print(dust_df.head())
 
-for date in dust_df['Date (YYYYMMDD)']:
-    
+for index, row in dust_df.iterrows():
+    date = row['Date (YYYYMMDD)']
+    latitude = row['latitude']
+    longitude = row['longitude']
+
     date_obj = datetime.strptime(str(date), "%Y%m%d")
     YYYY = date_obj.strftime("%Y")
     MM = date_obj.strftime("%m")
@@ -38,7 +41,22 @@ for date in dust_df['Date (YYYYMMDD)']:
 
 
     #--- Read WLDAS data
-        wldas_file = "WLDAS/WLDAS_NOAHMP001_DA1_20200102.D10.nc"
-        wldas_ds = xr.open_dataset(wldas_file)
-        print(wldas_ds)
+    wldas_ds = xr.open_dataset("WLDAS/"+file_name)
 
+    #--- Filter to near dust event
+    lat_max = float(latitude)+1
+    lat_min = float(latitude)-1
+    lon_max = float(longitude)+1
+    lon_min = float(longitude)-1
+    wldas_ds_subset = wldas_ds.sel(lat=slice(lat_max, lat_min), lon=slice(lon_min, lon_max))
+    wldas_ds_averaged = wldas_ds_subset.mean(dim=['time', 'lat', 'lon'])
+
+    #--- Save or append values to CSV file
+    averaged_values = {var: wldas_ds_averaged[var].values for var in wldas_ds_averaged.variables}
+    df = pd.DataFrame(averaged_values, index=wldas_ds_subset['time'].values)
+
+    csv_file = 'averaged_data.csv'
+    if not os.path.exists(csv_file):
+        df.to_csv(csv_file, index=False)
+    else:
+        df.to_csv(csv_file, mode='a', header=False, index=False) 
