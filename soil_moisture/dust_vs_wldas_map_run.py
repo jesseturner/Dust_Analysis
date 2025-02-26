@@ -41,28 +41,42 @@ while current_date <= end_date:
         print("Downloading", date, "data...")
 
     #--- Download WLDAS data if necessary
-        subprocess.run(["bash", "wldas_data_download.sh", str(date)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            subprocess.run(
+                ["bash", "wldas_data_download.sh", str(date)], 
+                stdout=subprocess.PIPE,  # Capture stdout
+                stderr=subprocess.PIPE,  # Capture stderr
+                check=True  # Raises CalledProcessError on failure
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"Download failed for {date}!\nError message: {e.stderr.decode().strip()}")
 
 
     #--- Read WLDAS data
     wldas_ds = xr.open_dataset("WLDAS/"+file_name)
+    wldas_ds = wldas_ds.squeeze(dim="time")
     soil_moist = wldas_ds.SoilMoi00_10cm_tavg
+
+    #--- Determine region
+    #------ US Southwest (zoomed out)
+    latitude_north = 44
+    latitude_south = 27.5
+    longitude_west = -128
+    longitude_east = -100
     
     #--- Plot WLDAS data
     projection=ccrs.PlateCarree(central_longitude=0)
     fig,ax=plt.subplots(1, figsize=(12,12),subplot_kw={'projection': projection})
 
-    #levels = np.linspace(np.min(soil_moist), np.max(soil_moist), 31)
+    levels = np.linspace(0, 0.6, 31)
 
-    c=ax.contourf(soil_moist.lon, soil_moist.lat, soil_moist, extend='both')
+    c=ax.contourf(soil_moist.lon, soil_moist.lat, soil_moist, extend='both', levels=levels, cmap='plasma_r')
     clb = plt.colorbar(c, shrink=0.4, pad=0.02, ax=ax)
     clb.ax.tick_params(labelsize=15)
     clb.set_label('', fontsize=15)
-    #ax.set_extent([longitude_west, longitude_east, latitude_south, latitude_north], crs=ccrs.PlateCarree())
-
+    ax.set_extent([longitude_west, longitude_east, latitude_south, latitude_north], crs=ccrs.PlateCarree())
     ax.coastlines(resolution='50m', color='black', linewidth=1)
     ax.add_feature(feature.STATES, zorder=100, edgecolor='#000', facecolor='none', linewidth=0.5)
 
     fig.savefig("WLDAS_maps/"+YYYY+"_"+MM+"_"+DD, dpi=200, bbox_inches='tight')
- 
     plt.close()
