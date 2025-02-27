@@ -5,3 +5,4 @@ GRACEDADM*
 *.nc
 */__pycache__
 *nohup.out
+*.npz
