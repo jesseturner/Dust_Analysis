@@ -68,10 +68,6 @@ dust_longitudes = dust_df['longitude'].values
 for idx, (dust_lat, dust_lon) in enumerate(zip(dust_latitudes, dust_longitudes)):
     print(f"Processing dust event {idx + 1}: Lat = {dust_lat}, Lon = {dust_lon}")
     
-    # Ensure the dust latitudes and longitudes are float types
-    dust_lat = float(dust_lat)
-    dust_lon = float(dust_lon)
-    
     # Initialize a dictionary to store data for the 1x1 box around this dust event
     dust_variable_data = {var: [] for var in variable_data.keys()}
 
@@ -80,56 +76,59 @@ for idx, (dust_lat, dust_lon) in enumerate(zip(dust_latitudes, dust_longitudes))
         if filename.endswith(".nc"):
             file_path = os.path.join(data_dir, filename)
             ds = xr.open_dataset(file_path)
-            
-            # Ensure the latitude and longitude arrays in WLDAS are floats
-            lat = ds['lat'].values.astype(float)  # Convert to float
-            lon = ds['lon'].values.astype(float)  # Convert to float
+            ds = ds.squeeze()
             
             # Create masks to filter data within the 1x1 degree box around the dust event
-            lat_mask = (lat >= dust_lat) & (lat < dust_lat + 1)
-            lon_mask = (lon >= dust_lon) & (lon < dust_lon + 1)
+            #--- fixing typos in longitudes
+            def fix_trailing_minus(s):
+                s = re.sub(r'^(\d+\.\d+)-$', r'-\1', s)
+                if '-' not in s:
+                    s = '-' + s
+                return s
+            dust_lon = fix_trailing_minus(dust_lon)
+
+            lat_mask = (ds['lat'].values >= float(dust_lat)) & (ds['lat'].values < float(dust_lat) + 1)
+            lon_mask = (ds['lon'].values >= float(dust_lon)) & (ds['lon'].values < float(dust_lon) + 1)
+            lat_mask_2d, lon_mask_2d = np.meshgrid(lat_mask, lon_mask, indexing='ij')
+            full_mask = lat_mask_2d & lon_mask_2d
+
             
-#------ This line is where things get screwed up
-            for var in variable_data.keys():
+            for var in ds.data_vars:
                 try:
-                    # Try to extract the data
-                    var_data = ds[var].sel(lat=lat[lat_mask], lon=lon[lon_mask]).values.flatten()
-                    
-                    # Continue with your logic if there's no error
+                    var_data = ds[var].where(full_mask, drop=True).values.flatten()
                     if len(var_data) > 0:
                         dust_variable_data[var].extend(var_data)
                 
                 except Exception as e:
-                    # Log or print the error message
                     print(f"Error occurred for variable {var}: {e}")
-                    # Skip the loop iteration and move to the next one
                     continue
-            # Apply the masks to the variable data
-            # for var in ds.data_vars:
-            #     var_data = ds[var].sel(lat=lat[lat_mask], lon=lon[lon_mask]).values.flatten()
-                
-            #     # Store the filtered data in dust_variable_data for later histogram plotting
-            #     if len(var_data) > 0:
-            #         dust_variable_data[var].extend(var_data)
             
             ds.close()
 
-    # Plot histograms: the WLDAS histogram and the dust-specific histogram
-    for var in variable_data.keys():
-        if len(dust_variable_data[var]) > 0:
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.hist(variable_data[var], bins=50, edgecolor="black", alpha=0.7, label="WLDAS Data")
-            ax.hist(dust_variable_data[var], bins=50, edgecolor="orange", alpha=0.7, label="Dust Region", color='orange')
-            ax.set_xlabel(var)
-            ax.set_ylabel("Frequency")
-            ax.set_title(f"Histogram of {var} with Dust Event at Lat: {dust_lat}, Lon: {dust_lon}")
-            ax.grid(True)
-            ax.legend(loc="upper right")
-            
-            # Sanitize the variable name to avoid invalid characters in filenames
-            clean_var_name = f"dust_case_{var.replace(' ', '_')}"
-            clean_var_name = re.sub(r'[^A-Za-z0-9_-]', '', clean_var_name)
-            
-            # Save the figure
-            fig.savefig(f"histograms/{clean_var_name}.png", dpi=200, bbox_inches='tight')
-            plt.close()
+#--- Plot histograms: the WLDAS histogram and the dust-specific histogram
+for var in variable_data.keys():
+    if len(dust_variable_data[var]) > 0:
+        fig, ax1 = plt.subplots(figsize=(10, 5))
+
+        # First histogram on primary y-axis
+        ax1.hist(variable_data[var], bins=50, edgecolor="black", alpha=0.7, label="WLDAS Data")
+        ax1.set_ylabel("Frequency (WLDAS Data)", color="black")
+        ax1.tick_params(axis='y', labelcolor="black")
+
+        # Create a second y-axis
+        ax2 = ax1.twinx()
+        ax2.hist(dust_variable_data[var], bins=50, edgecolor="orange", alpha=0.7, label="Dust Region", color='orange')
+        ax2.set_ylabel("Frequency (Dust Region)", color="orange")
+        ax2.tick_params(axis='y', labelcolor="orange")
+
+        fig.legend(loc="upper right")
+        ax1.set_title(f"Histogram of {var}")
+        ax1.grid(True)
+        
+        # Sanitize the variable name to avoid invalid characters in filenames
+        clean_var_name = f"dust_case_{var.replace(' ', '_')}"
+        clean_var_name = re.sub(r'[^A-Za-z0-9_-]', '', clean_var_name)
+        
+        # Save the figure
+        fig.savefig(f"histograms/{clean_var_name}.png", dpi=200, bbox_inches='tight')
+        plt.close()
