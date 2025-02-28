@@ -13,13 +13,13 @@ save_path_WLDAS_all = "histograms/WLDAS_all.npz"
 save_path_WLDAS_dust = "histograms/WLDAS_dust.npz" 
 
 # Loop through all NetCDF files in the directory
-if os.path.exists(save_path):
-    print(f"Loading data from {save_path}")
+if os.path.exists(save_path_WLDAS_all):
+    print(f"Loading data from {save_path_WLDAS_all}")
     # Load the data from the npz file
-    data_WLDAS_all = np.load(save_path, allow_pickle=True)
+    data_WLDAS_all = np.load(save_path_WLDAS_all, allow_pickle=True)
     data_WLDAS_all = {key: data_WLDAS_all[key] for key in data_WLDAS_all.files}  # Convert to dictionary
 else:
-    print(f"{save_path} does not exist. Processing NetCDF files...")
+    print(f"{save_path_WLDAS_all} does not exist. Processing NetCDF files...")
     
     # Initialize data_WLDAS_all dictionary to store variables
     data_WLDAS_all = {}
@@ -112,7 +112,7 @@ for idx, (dust_lat, dust_lon) in enumerate(zip(dust_latitudes, dust_longitudes))
             
             ds.close()
             
-            # Save the data as an npz file to avoid re-processing in the future
-            print(f"Saving data to {save_path_WLDAS_dust}")
-            np.savez(save_path_WLDAS_dust, **data_WLDAS_dust)
+    # Save the data as an npz file to avoid re-processing in the future
+    print(f"Saving data to {save_path_WLDAS_dust}")
+    np.savez(save_path_WLDAS_dust, **data_WLDAS_dust)
 
