@@ -60,59 +60,64 @@ dust_df.columns = [
 print(dust_df.head())
 
 # Extract latitude and longitude of dust events
+dust_dates = dust_df['Date (YYYYMMDD)'].astype(str)
 dust_latitudes = dust_df['latitude'].values
 dust_longitudes = dust_df['longitude'].values
 
+# Initialize a dictionary to store data for the 1x1 box around this dust event
+data_WLDAS_dust = {var: [] for var in data_WLDAS_all.keys()}
+
 # Loop through each dust event and filter WLDAS data for nearby points (1x1 degree box)
-for idx, (dust_lat, dust_lon) in enumerate(zip(dust_latitudes, dust_longitudes)):
-    print(f"Processing dust event {idx + 1}: Lat = {dust_lat}, Lon = {dust_lon}")
-    
-    # Initialize a dictionary to store data for the 1x1 box around this dust event
-    data_WLDAS_dust = {var: [] for var in data_WLDAS_all.keys()}
+for idx, (dust_date, dust_lat, dust_lon) in enumerate(zip(dust_dates, dust_latitudes, dust_longitudes)):
+    print(f"Processing dust event {dust_date}: Lat = {dust_lat}, Lon = {dust_lon}")
 
-    # Loop through all NetCDF files in the WLDAS data
-    for filename in sorted(os.listdir(data_dir)):
-        if filename.endswith(".nc"):
-            file_path = os.path.join(data_dir, filename)
-            ds = xr.open_dataset(file_path)
-            ds = ds.squeeze()
-            
-            # Create masks to filter data within the 1x1 degree box around the dust event
-            #--- fixing typos in longitudes
-            def fix_typos(s):
-                s = re.sub(r'^(\d+\.\d+)-$', r'-\1', s)
-                return s   
+    # Filter to the WLDAS file that matches that date
+    filtered_files = [f for f in os.listdir(data_dir) if dust_date in f]
+    if len(filtered_files) == 0: 
+        print(f"Error: No WLDAS data found for {dust_date}.")
+        break
 
-            dust_lon = fix_typos(str(dust_lon))
-            dust_lat = fix_typos(str(dust_lat))
-            
-            try:
-                lat_mask = (ds['lat'].values >= float(dust_lat)) & (ds['lat'].values < float(dust_lat) + 1)
-                lon_mask = (ds['lon'].values >= float(dust_lon)) & (ds['lon'].values < float(dust_lon) + 1)
-                lat_mask_2d, lon_mask_2d = np.meshgrid(lat_mask, lon_mask, indexing='ij')
-                full_mask = lat_mask_2d & lon_mask_2d
-                full_mask_da = xr.DataArray(full_mask, dims=["lat", "lon"], coords={"lat": ds["lat"], "lon": ds["lon"]})
-            except ValueError as e:
-                print(f"Error occured for Lat = {dust_lat}, Lon = {dust_lon}: {e}")
+    for filename in sorted(filtered_files):
+        file_path = os.path.join(data_dir, filename)
+        ds = xr.open_dataset(file_path)
+        ds = ds.squeeze()
+        
+        # Create masks to filter data within the 1x1 degree box around the dust event
+        #--- fixing typos in longitudes
+        def fix_typos(s):
+            s = re.sub(r'^(\d+\.\d+)-$', r'-\1', s)
+            return s   
+
+        dust_lon = fix_typos(str(dust_lon))
+        dust_lat = fix_typos(str(dust_lat))
+        
+        try:
+            lat_mask = (ds['lat'].values >= float(dust_lat)) & (ds['lat'].values < float(dust_lat) + 1)
+            lon_mask = (ds['lon'].values >= float(dust_lon)) & (ds['lon'].values < float(dust_lon) + 1)
+            lat_mask_2d, lon_mask_2d = np.meshgrid(lat_mask, lon_mask, indexing='ij')
+            full_mask = lat_mask_2d & lon_mask_2d
+            full_mask_da = xr.DataArray(full_mask, dims=["lat", "lon"], coords={"lat": ds["lat"], "lon": ds["lon"]})
+        except ValueError as e:
+            print(f"Error occured for Lat = {dust_lat}, Lon = {dust_lon}: {e}")
+            continue
+        
+
+        
+        for var in ds.data_vars:
+            if var == 'time_bnds':
                 continue
+            try:
+                var_data = ds[var].where(full_mask_da, drop=True).values.flatten()
+                if len(var_data) > 0:
+                    data_WLDAS_dust[var].extend(var_data)
             
-
+            except Exception as e:
+                print(f"Error occurred for variable {var}: {e}")
+                continue
+        
+        ds.close()
             
-            for var in ds.data_vars:
-                if var == 'time_bnds':
-                    continue
-                try:
-                    var_data = ds[var].where(full_mask_da, drop=True).values.flatten()
-                    if len(var_data) > 0:
-                        data_WLDAS_dust[var].extend(var_data)
-                
-                except Exception as e:
-                    print(f"Error occurred for variable {var}: {e}")
-                    continue
-            
-            ds.close()
-            
-    # Save the data as an npz file to avoid re-processing in the future
-    print(f"Saving data to {save_path_WLDAS_dust}")
-    np.savez(save_path_WLDAS_dust, **data_WLDAS_dust)
+# Save the data as an npz file to avoid re-processing in the future
+print(f"Saving data to {save_path_WLDAS_dust}")
+np.savez(save_path_WLDAS_dust, **data_WLDAS_dust)
 
